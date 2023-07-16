@@ -59,74 +59,77 @@ int SensorPin1;
 int SensorPin2;
 int SensorPin3;
 int SensorPin4;
-int wrong;
+int SensorPin5;
+int SensorPin6;
+int SensorPin7;
+
+int error;
 
 enum Direction
 {
 	FORWARD,
-	REVERSE
+	BACKWARD
 };
 
 void SetSpeed
-(float RightDuty,// ????
-	enum Direction RightDirection,// ????:
-	float LeftDuty, // ????
-	enum Direction LeftDirection) // ????:
+(float RightDuty,
+	enum Direction RightDirection,
+	float LeftDuty,
+	enum Direction LeftDirection)
 {
 	int CounterPeriod, Compare;
 	CounterPeriod = __HAL_TIM_GET_AUTORELOAD(&htim5);
-	// ??
 	Compare = (int)(CounterPeriod * LeftDuty);
 	switch (LeftDirection)
 	{
-	case FORWARD: // ??
+	case FORWARD: 
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, Compare);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
 		break;
-	case REVERSE: // ??
+	case BACKWARD:
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, Compare);
 		break;
 	}
-	// ??
 	Compare = (int)(CounterPeriod * RightDuty);
 	switch (RightDirection)
 	{
-	case FORWARD: // ??
+	case FORWARD: 
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, Compare);
 		break;
-	case REVERSE: // ??
+	case BACKWARD:
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, Compare);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, 0);
 		break;
 	}
 }
+
 void ReadSensorValue()
 {
 	if (SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 0 && SensorPin4 == 1)
 	{
-		wrong = 2;
+		error = 2;
 	}
 	else if(SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 1 && SensorPin4 == 1)
 	{
-		wrong = 1;
+		error = 1;
 	}
 	else if(SensorPin1 == 0 && SensorPin2 == 1 && SensorPin3 == 1 && SensorPin4 == 0)
 	{
-		wrong = 0;
+		error = 0;
 	}
 	else if(SensorPin1 == 1 && SensorPin2 == 1 && SensorPin3 == 0 && SensorPin4 == 0)
 	{
-		wrong = -1;
+		error = -1;
 	}
 	else if(SensorPin1 == 1 && SensorPin2 == 0 && SensorPin3 == 0 & SensorPin4 ==0)
 	{
-		wrong = -2;
+		error = -2;
 	}
 	else if(SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 0 && SensorPin4 == 0)
 	{
-		wrong = 404;
+		error = 404;
 	}
 }
 
@@ -134,44 +137,44 @@ void ReadSensorValue()
 void carForward()
 {
 	ReadSensorValue();
-	switch(wrong)
+	switch(error)
 	{
 		case 2:
 			do
 			{
 				SetSpeed(0.5, FORWARD, 0.3, FORWARD);
-			}while(wrong != 0);
+			}while(error != 0);
 			break;
 		case 1:
 			do
 			{
 				SetSpeed(0.45, FORWARD, 0.35, FORWARD);
-			}while(wrong != 0);
+			}while(error != 0);
 			break;
 		case 0: SetSpeed(0.4, FORWARD, 0.4, FORWARD);break;
 		case -1:
 			do
 			{
 				SetSpeed(0.35, FORWARD, 0.45, FORWARD);
-			}while(wrong != 0);
+			}while(error != 0);
 			break;
 		case -2:
 			do
 			{
 				SetSpeed(0.3, FORWARD, 0.5, FORWARD);
-			}while(wrong != 0);
+			}while(error != 0);
 			break;
 //		case 100:
 //			do
 //			{
-//				if(wrong == 100)
-//			}while(wrong != 0);
+//				if(error == 100)
+//			}while(error != 0);
 //			break;
 		case 404: SetSpeed(0,FORWARD, 0, FORWARD);break;
 	}
 }
 
-//void carReverse()
+//void carBACKWARD()
 //{
 
 //}
@@ -339,7 +342,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
-	   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	   ex: printf("error parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
