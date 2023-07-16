@@ -55,13 +55,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int SensorPin1;
-int SensorPin2;
-int SensorPin3;
-int SensorPin4;
-int SensorPin5;
-int SensorPin6;
-int SensorPin7;
+unsigned char ForwardSensor;
+unsigned char BackwardSensor;
 
 int error;
 
@@ -107,29 +102,26 @@ void SetSpeed
 
 void ReadSensorValue()
 {
-	if (SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 0 && SensorPin4 == 1)
+	switch (ForwardSensor)
 	{
-		error = 2;
-	}
-	else if(SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 1 && SensorPin4 == 1)
-	{
-		error = 1;
-	}
-	else if(SensorPin1 == 0 && SensorPin2 == 1 && SensorPin3 == 1 && SensorPin4 == 0)
-	{
-		error = 0;
-	}
-	else if(SensorPin1 == 1 && SensorPin2 == 1 && SensorPin3 == 0 && SensorPin4 == 0)
-	{
-		error = -1;
-	}
-	else if(SensorPin1 == 1 && SensorPin2 == 0 && SensorPin3 == 0 & SensorPin4 ==0)
-	{
-		error = -2;
-	}
-	else if(SensorPin1 == 0 && SensorPin2 == 0 && SensorPin3 == 0 && SensorPin4 == 0)
-	{
-		error = 404;
+		case 0b1000:
+			error = 2;
+			break;
+		case 0b1100:
+			error = 1;
+			break;
+		case 0b0110:
+			error = 0;
+			break;
+		case 0b0011:
+			error = -1;
+			break;
+		case 0b0001:
+			error = -2;
+			break;
+		case 0b0000:
+			error = 404;
+		break;
 	}
 }
 
@@ -143,26 +135,26 @@ void carForward()
 			do
 			{
 				SetSpeed(0.5, FORWARD, 0.3, FORWARD);
-			}while(error != 0);
+			} while(error != 0);
 			break;
 		case 1:
 			do
 			{
 				SetSpeed(0.45, FORWARD, 0.35, FORWARD);
-			}while(error != 0);
+			} while(error != 0);
 			break;
 		case 0: SetSpeed(0.4, FORWARD, 0.4, FORWARD);break;
 		case -1:
 			do
 			{
 				SetSpeed(0.35, FORWARD, 0.45, FORWARD);
-			}while(error != 0);
+			} while(error != 0);
 			break;
 		case -2:
 			do
 			{
 				SetSpeed(0.3, FORWARD, 0.5, FORWARD);
-			}while(error != 0);
+			} while(error != 0);
 			break;
 //		case 100:
 //			do
@@ -228,17 +220,21 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_4);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-	SensorPin1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10);
-	SensorPin2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11);
-	SensorPin3 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
-	SensorPin4 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+		// 
+		ForwardSensor = (
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) << 0) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) << 1) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) << 2) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13) << 3)
+		);
+		
+		
     /* USER CODE END WHILE */
 	
     /* USER CODE BEGIN 3 */
