@@ -55,10 +55,10 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 unsigned char ForwardSensor;
 unsigned char BackwardSensor;
-
-int error;
+char error;
 
 enum Direction
 {
@@ -102,33 +102,80 @@ void SetSpeed
 
 void ReadSensorValue()
 {
-	switch (ForwardSensor)
-	{
-		case 0b1000:
-			error = 2;
-			break;
-		case 0b1100:
-			error = 1;
-			break;
-		case 0b0110:
-			error = 0;
-			break;
-		case 0b0011:
-			error = -1;
-			break;
-		case 0b0001:
-			error = -2;
-			break;
-		case 0b0000:
-			error = 404;
-		break;
-	}
+	ForwardSensor = (
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) << 7) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) << 6) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) << 5) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13) << 4) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) << 3) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15) << 2) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)  << 1) |
+			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)  << 0)
+	);
 }
 
 
 void carForward()
 {
 	ReadSensorValue();
+	// 判断误差error的情况
+	switch (ForwardSensor)
+	{
+		// 1个的情况
+		case 0b10000000:
+			error = -4;
+			break;
+		case 0b01000000:
+			error = -3;
+			break;
+		case 0b00100000:
+			error = -2;
+			break;
+		case 0b00010000:
+			error = -1;
+			break;
+		case 0b00001000:
+			error = 1;
+			break;
+		case 0b00000100:
+			error = 2;
+			break;
+		case 0b00000010:
+			error = 3;
+			break;
+		case 0b00000001:
+			error = 4;
+			break;
+		// 2个的情况
+		case 0b11000000:
+			error = 1;
+			break;
+		case 0b01100000:
+			error = -3;
+			break;
+		case 0b00110000:
+			error = -2;
+			break;
+		case 0b00011000:
+			error = 0;
+			break;
+		case 0b00001100:
+			error = 1;
+			break;
+		case 0b00000110:
+			error = 2;
+			break;
+		case 0b00000011:
+			error = 3;
+			break;
+		// 3个的情况
+		case 0b11100000:
+			error = -2;
+			break;
+		case 0b00000111:
+			error = 2;
+			break;
+	}
 	switch(error)
 	{
 		case 2:
@@ -162,7 +209,7 @@ void carForward()
 //				if(error == 100)
 //			}while(error != 0);
 //			break;
-		case 404: SetSpeed(0,FORWARD, 0, FORWARD);break;
+		case 255: SetSpeed(0,FORWARD, 0, FORWARD);break;
 	}
 }
 
@@ -226,17 +273,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		// 
-		ForwardSensor = (
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) << 0) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) << 1) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) << 2) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13) << 3)
-		);
-		
 		
     /* USER CODE END WHILE */
-	
+
     /* USER CODE BEGIN 3 */
 		carForward();
 //		if(SensorPin1 == 1)
