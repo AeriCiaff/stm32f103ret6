@@ -58,7 +58,13 @@ void SystemClock_Config(void);
 
 unsigned char ForwardSensor;
 unsigned char BackwardSensor;
-char error;
+
+float Kp; //比例系数
+float Ki; //积分系数
+float Kd; //微分系数
+char error; //误差
+float P = 0, I = 0, D = 0, PID_value = 0;
+float previous_error = 0, previous_I = 0;
 
 enum Direction
 {
@@ -77,48 +83,45 @@ void SetSpeed
 	Compare = (int)(CounterPeriod * LeftDuty);
 	switch (LeftDirection)
 	{
-	case FORWARD: 
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, Compare);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
-		break;
-	case BACKWARD:
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, Compare);
-		break;
+		case FORWARD: 
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, Compare);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
+			break;
+		case BACKWARD:
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, Compare);
+			break;
 	}
 	Compare = (int)(CounterPeriod * RightDuty);
 	switch (RightDirection)
 	{
-	case FORWARD: 
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, Compare);
-		break;
-	case BACKWARD:
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, Compare);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, 0);
-		break;
+		case FORWARD: 
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, Compare);
+			break;
+		case BACKWARD:
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, Compare);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, 0);
+			break;
 	}
 }
 
-void ReadSensorValue()
+void ReadSensor(void)
 {
 	ForwardSensor = (
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) << 7) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) << 6) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) << 5) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13) << 4) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) << 3) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15) << 2) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)  << 1) |
-			(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)  << 0)
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) << 7) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) << 6) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12) << 5) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13) << 4) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) << 3) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15) << 2) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)  << 1) |
+		(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)  << 0)
 	);
 }
 
-
-void carForward()
+void CalculateError(void)
 {
-	ReadSensorValue();
-	// 判断误差error的情况
 	switch (ForwardSensor)
 	{
 		// 1个的情况
@@ -176,58 +179,26 @@ void carForward()
 			error = 2;
 			break;
 	}
-	switch(error)
-	{
-		case 2:
-			do
-			{
-				SetSpeed(0.5, FORWARD, 0.3, FORWARD);
-			} while(error != 0);
-			break;
-		case 1:
-			do
-			{
-				SetSpeed(0.45, FORWARD, 0.35, FORWARD);
-			} while(error != 0);
-			break;
-		case 0: SetSpeed(0.4, FORWARD, 0.4, FORWARD);break;
-		case -1:
-			do
-			{
-				SetSpeed(0.35, FORWARD, 0.45, FORWARD);
-			} while(error != 0);
-			break;
-		case -2:
-			do
-			{
-				SetSpeed(0.3, FORWARD, 0.5, FORWARD);
-			} while(error != 0);
-			break;
-//		case 100:
-//			do
-//			{
-//				if(error == 100)
-//			}while(error != 0);
-//			break;
-		case 255: SetSpeed(0,FORWARD, 0, FORWARD);break;
-	}
 }
 
-//void carBACKWARD()
-//{
+void CalculatePID(void)
+{
+  P = error;
+  I = I + previous_I;
+  D = error - previous_error;
 
-//}
+  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
 
-//void carTurnRight()
-//{
-//	
-//}
+  previous_I = I;
+  previous_error = error;
+}
 
-//void carTurnLeft()
-//{
-
-//}
-
+void Go(void)
+{
+	ReadSensor();// 读取前向八路灰度传感器的值
+	CalculateError();// 判断误差error的情况
+	CalculatePID(); // 计算PID的值
+}
 
 
 /* USER CODE END 0 */
@@ -277,35 +248,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		carForward();
-//		if(SensorPin1 == 1)
-//		{
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_SET);
-//		}
-//		else {
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);
-//		}
-//		if(SensorPin2 == 1)
-//		{
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_SET);
-//		}
-//		else {
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_RESET);
-//		}
-//		if(SensorPin3 == 1)
-//		{
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);
-//		}
-//		else {
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);
-//		}
-//		if(SensorPin4 == 1)
-//		{
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET);
-//		}
-//		else {
-//			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET);
-//		}
+		Go();
 	}
   /* USER CODE END 3 */
 }
