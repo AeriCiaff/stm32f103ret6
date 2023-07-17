@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -178,6 +179,9 @@ void CalculateError(void)
 		case 0b00000111:
 			error = 2;
 			break;
+		case 0b00000000:
+			error = 0;
+			break;
 	}
 }
 
@@ -195,9 +199,9 @@ void CalculatePID(void)
 
 void Go(void)
 {
-	ReadSensor();// 读取前向八路灰度传感器的值
-	CalculateError();// 判断误差error的情况
-	CalculatePID(); // 计算PID的值
+	ReadSensor();// 读取前向八路灰度传感器的�?
+	CalculateError();// 判断误差error的情�?
+	CalculatePID(); // 计算PID的�??
 }
 
 
@@ -232,6 +236,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM5_Init();
+  MX_UART5_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start(&htim5);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
@@ -242,9 +247,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	unsigned char *arr[] = {"-4","-3","-2","-1","0","1","2","3","4"};
+	unsigned char **p = &arr[4];
 	while (1)
 	{
-		
+		HAL_UART_Transmit_IT(&huart5,p[error],2);
+		HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
