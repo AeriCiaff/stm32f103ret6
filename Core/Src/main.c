@@ -63,7 +63,15 @@ unsigned char BackwardSensor;
 float Kp; //比例系数
 float Ki; //积分系数
 float Kd; //微分系数
-char error; //误差
+float expectVal;//期望值
+float realVal;//实际值
+float currentValue;//当前误差
+char error; //实际误差
+float controlIncrementalValue;//控制增量
+float controlIncrementalVal;//返回的控制增量
+float controlVal;//控制量
+float lastVal;//上次误差
+float nextLastVal;//上上次误差
 float P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
 
@@ -185,23 +193,26 @@ void CalculateError(void)
 	}
 }
 
-void CalculatePID(void)
+float incrementalPID(float expectValue, float realValue)//增量式PID（期望值，实际值）
 {
-  P = error;
-  I = I + previous_I;
-  D = error - previous_error;
-
-  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
-
-  previous_I = I;
-  previous_error = error;
+	currentValue = expectValue - realValue;//计算当前误差
+	//计算控制增量
+	controlIncrementalValue = Kp * (currentValue - lastVal) + Ki * currentValue + Kd * ((currentValue - lastVal) - (lastVal - nextLastVal));
+	nextLastVal = lastVal;//更新上上次误差
+	lastVal = currentValue;//更新上次误差
+	return controlIncrementalValue;
 }
 
+void calculateControlValue()//计算控制量
+{
+	controlIncrementalVal = incrementalPID(expectVal, realVal); //调用函数获得控制增量
+	controlVal = controlVal + controlIncrementalVal;//计算控制量
+}
 void Go(void)
 {
 	ReadSensor();// 读取前向八路灰度传感器的�?
 	CalculateError();// 判断误差error的情�?
-	CalculatePID(); // 计算PID的�??
+	calculateControlValue();//计算控制量
 }
 
 
