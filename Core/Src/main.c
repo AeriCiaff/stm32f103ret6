@@ -60,18 +60,19 @@ void SystemClock_Config(void);
 unsigned char ForwardSensor;
 unsigned char BackwardSensor;
 
+float initialMotorSpeed = 0.4; //初始速度
 float Kp; //比例系数
 float Ki; //积分系数
 float Kd; //微分系数
-float expectVal;//期望值
-float realVal;//实际值
-float currentValue;//当前误差
+float expectVal; //期望值
+float realVal; //实际值
+float currentValue; //当前误差
 char error; //实际误差
-float controlIncrementalValue;//控制增量
-float controlIncrementalVal;//返回的控制增量
-float controlVal;//控制量
-float lastVal;//上次误差
-float nextLastVal;//上上次误差
+float controlIncrementalValue; //控制增量
+float controlIncrementalVal; //返回的控制增量
+float controlVal; //控制量
+float lastVal = 0; //上次误差
+float nextLastVal = 0; //上上次误差
 float P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
 
@@ -135,7 +136,7 @@ void CalculateError(void)
 	{
 		// 1个的情况
 		case 0b10000000:
-			error = -4;
+			error = -4; 
 			break;
 		case 0b01000000:
 			error = -3;
@@ -160,13 +161,13 @@ void CalculateError(void)
 			break;
 		// 2个的情况
 		case 0b11000000:
-			error = 1;
-			break;
-		case 0b01100000:
 			error = -3;
 			break;
-		case 0b00110000:
+		case 0b01100000:
 			error = -2;
+			break;
+		case 0b00110000:
+			error = -1;
 			break;
 		case 0b00011000:
 			error = 0;
@@ -187,8 +188,17 @@ void CalculateError(void)
 		case 0b00000111:
 			error = 2;
 			break;
-		case 0b00000000:
-			error = 0;
+		//大左转
+		case 0b00001111:
+			error = 100;
+			break;
+		//大右转
+		case 0b11110000:
+			error = 101;
+			break;
+		//停
+		case 0b11111111:
+			error = 102;
 			break;
 	}
 }
@@ -205,17 +215,99 @@ float incrementalPID(float expectValue, float realValue)//增量式PID（期望�
 
 void calculateControlValue()//计算控制量
 {
-	controlIncrementalVal = incrementalPID(expectVal, realVal); //调用函数获得控制增量
+	controlIncrementalVal = incrementalPID(0, error); //调用函数获得控制增量
 	controlVal = controlVal + controlIncrementalVal;//计算控制量
 }
-void Go(void)
+
+void motor_control()
 {
-	ReadSensor();// 读取前向八路灰度传感器的�?
-	CalculateError();// 判断误差error的情�?
-	calculateControlValue();//计算控制量
+	//计算影响之后电机的转速
+	float leftMotorSpeed = initialMotorSpeed - controlVal;
+	float rightMotorSpeed = initialMotorSpeed + controlVal;
+	
+	SetSpeed(rightMotorSpeed,FORWARD,leftMotorSpeed,FORWARD);
+	
 }
 
+void forward()
+{
+	SetSpeed(0.4,FORWARD,0.4,FORWARD);
+}
 
+void reverse()
+{
+	SetSpeed(0.4,BACKWARD,0.4,BACKWARD);
+}
+
+void right()
+{
+	SetSpeed(0.2,FORWARD,0.4,FORWARD);
+}
+
+void left()
+{
+	SetSpeed(0.4,FORWARD,0.2,FORWARD);
+}
+
+void sharpRightTurn()
+{
+	SetSpeed(0.4,BACKWARD,0.4,FORWARD);
+}
+
+void sharpLeftTurn()
+{
+	SetSpeed(0.4,FORWARD,0.4,BACKWARD);
+}
+
+void stop()
+{
+	SetSpeed(0,FORWARD,0,FORWARD);
+}
+
+void Go(void)
+{
+	ReadSensor();// 读取前向八路灰度传感器的情况
+	CalculateError();// 判断误差error
+	switch(error)
+	{
+		//大左转
+		case 100:
+			if(error == 100)
+			{
+				forward();
+				HAL_Delay(1000);
+				stop();
+				do{
+					ReadSensor();
+					sharpLeftTurn();
+				}while(error != 0 || error != 1);
+			}
+			break;
+		//大右转
+		case 101:
+			if(error == 100)
+			{
+				forward();
+				HAL_Delay(1000);
+				stop();
+				do{
+					ReadSensor();
+					sharpRightTurn();
+				}while(error != 0 || error != 1);
+			}
+			break;
+		//停车
+		case 102:
+			do{
+				ReadSensor();
+				stop();
+			}while(error != 0 || error != 1);
+			break;
+		default:
+			calculateControlValue();//计算控制量
+			motor_control();
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -258,12 +350,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	unsigned char *arr[] = {"-4","-3","-2","-1","0","1","2","3","4"};
-	unsigned char **p = &arr[4];
+//	unsigned char *arr[] = {"-4","-3","-2","-1","0","1","2","3","4"};
+//	unsigned char **p = &arr[4];
 	while (1)
 	{
-		HAL_UART_Transmit_IT(&huart5,p[error],2);
-		HAL_Delay(500);
+//		HAL_UART_Transmit_IT(&huart5,p[error],2);
+//		HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
