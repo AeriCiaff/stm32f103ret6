@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +56,20 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int fputc(int c,FILE * stream)
+{
+	uint8_t ch[1] = {c};
+	HAL_UART_Transmit(&huart5,ch,1,0xFFFF);
+	return c;
+}
+
+int fgetc(FILE *f)
+{	
+	int ch;
+	while (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_RXNE) == RESET);
+	HAL_UART_Receive(&huart5, (uint8_t *)&ch, 1, 1000);	
+	return (ch);
+}
 
 unsigned char ForwardSensor;
 unsigned char BackwardSensor;
@@ -67,12 +81,12 @@ float Kd; //微分系数
 float expectVal; //期望值
 float realVal; //实际值
 float currentValue; //当前误差
-char error; //实际误差
 float controlIncrementalValue; //控制增量
 float controlIncrementalVal; //返回的控制增量
 float controlVal; //控制量
 float lastVal = 0; //上次误差
 float nextLastVal = 0; //上上次误差
+int error; //误差
 float P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
 
@@ -307,6 +321,8 @@ void Go(void)
 			calculateControlValue();//计算控制量
 			motor_control();
 	}
+	ReadSensor();
+	CalculateError();
 }
 /* USER CODE END 0 */
 
@@ -356,12 +372,18 @@ int main(void)
 	{
 //		HAL_UART_Transmit_IT(&huart5,p[error],2);
 //		HAL_Delay(500);
+	while (1)
+	{
+		Go();
+		printf("%d\r\n",ForwardSensor);
+		HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		Go();
+		
 	}
   /* USER CODE END 3 */
+}
 }
 
 /**
